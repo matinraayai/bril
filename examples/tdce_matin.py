@@ -62,7 +62,8 @@ def remove_unused_defs_pass(f) -> bool:
                 # If any of the last defs now have a use, remove them from the map
                 if "args" in instr:
                     for arg in instr['args']:
-                        del variable_to_last_def_with_no_use_map[arg]
+                        if arg in variable_to_last_def_with_no_use_map:
+                            del variable_to_last_def_with_no_use_map[arg]
 
                 # If the instr has a dest:
                 if 'dest' in instr:
@@ -74,7 +75,7 @@ def remove_unused_defs_pass(f) -> bool:
                         changed |= True
                     # Add the def to be kept track of its use
                     variable_to_last_def_with_no_use_map[dest] = i
-            block[:] = [i for i in block if i not in dead_instrs]
+            block[:] = [inst for (i, inst) in enumerate(block) if i not in dead_instrs]
     # Re-assemble the program back together
     func['instrs'] = flatten(blocks)
     return program_modified

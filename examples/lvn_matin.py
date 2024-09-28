@@ -98,40 +98,12 @@ class ValueNumberTable:
         return tuple(expr)
 
 
-def produces_block_liveout(instrs):
-    """Given a block of instructions, return a list of bools---one per
-    instruction---that indicates whether that instruction is the last
-    write for its variable.
-    """
-    out = [False] * len(instrs)
-    seen = set()
-    for idx, instr in reversed(list(enumerate(instrs))):
-        if 'dest' in instr:
-            dest = instr['dest']
-            if dest not in seen:
-                out[idx] = True
-                seen.add(instr['dest'])
-    return out
-
-
-def read_first(instrs):
-    """Given a block of instructions, return a set of variable names
-    that are read before they are written.
-    """
-    read = set()
-    written = set()
-    for instr in instrs:
-        read.update(set(instr.get('args', [])) - written)
-        if 'dest' in instr:
-            written.add(instr['dest'])
-    return read
-
-
 def lvn_block_pass(block):
     number_table = ValueNumberTable()
-    for instr, is_live_out_def in zip(block, produces_block_liveout(block)):
+    for instr in block:
         arg_vals = []
         dest_val = None
+        change_to_id = False
         if "args" in instr:
             for arg in instr["args"]:
                 arg_vals.append(number_table.get_or_create_use_value(arg))
@@ -140,8 +112,10 @@ def lvn_block_pass(block):
         # We don't have a value defined for this def; Create one.
         if "dest" in instr and dest_val is None:
             dest_val = number_table.get_or_create_def_value(instr)
+        else:
+            change_to_id = True
         # print(instr, arg_vals, dest_val)
-        # Re-materialize the instruction by renaming its operands and dest
+        # Re-materialize the instruction by renaming its operands
         if len(arg_vals) != 0:
             for i, arg_val in enumerate(arg_vals):
                 instr["args"][i] = number_table.get_canonical_of_value(arg_val)
@@ -149,7 +123,12 @@ def lvn_block_pass(block):
             # print("Is live out def: ")
             # Don't change the variable name if it is a live-out
             # if not is_live_out_def:
-            instr["dest"] = number_table.get_canonical_of_value(dest_val)
+            if change_to_id:
+                instr.update({
+                        'op': 'id',
+                        'args': [number_table.get_canonical_of_value(dest_val)],
+                    })
+            # instr["dest"] =
         # print(instr)
 
 
