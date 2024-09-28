@@ -19,8 +19,9 @@ def trivial_dce_pass(f) -> bool:
         used_operands = set()
         for block in blocks:
             for instr in block:
-                for arg in instr["args"]:
-                    used_operands.add(arg)
+                if "args" in instr:
+                    for arg in instr["args"]:
+                        used_operands.add(arg)
 
         # Reconstruct the block, and only add
         # instructions with a dest that is not used
@@ -59,8 +60,9 @@ def remove_unused_defs_pass(f) -> bool:
             dead_instrs = set()
             for i, instr in enumerate(block):
                 # If any of the last defs now have a use, remove them from the map
-                for arg in instr['args']:
-                    del variable_to_last_def_with_no_use_map[arg]
+                if "args" in instr:
+                    for arg in instr['args']:
+                        del variable_to_last_def_with_no_use_map[arg]
 
                 # If the instr has a dest:
                 if 'dest' in instr:
