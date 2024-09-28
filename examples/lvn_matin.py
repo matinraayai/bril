@@ -114,22 +114,18 @@ def lvn_block_pass(block):
             dest_val = number_table.get_or_create_def_value(instr)
         else:
             change_to_id = True
-        # print(instr, arg_vals, dest_val)
         # Re-materialize the instruction by renaming its operands
         if len(arg_vals) != 0:
             for i, arg_val in enumerate(arg_vals):
                 instr["args"][i] = number_table.get_canonical_of_value(arg_val)
         if "dest" in instr:
-            # print("Is live out def: ")
-            # Don't change the variable name if it is a live-out
-            # if not is_live_out_def:
             if change_to_id:
                 instr.update({
                         'op': 'id',
                         'args': [number_table.get_canonical_of_value(dest_val)],
                     })
-            # instr["dest"] =
-        # print(instr)
+            else:
+                instr["dest"] = number_table.get_canonical_of_value(dest_val)
 
 
 if __name__ == '__main__':
