@@ -25,17 +25,17 @@ def trivial_dce_pass(f) -> bool:
 
         # Reconstruct the block, and only add
         # instructions with a dest that is not used
-        new_block = []
         for block in blocks:
+            new_block = []
             for instr in block:
                 if "dest" in instr and instr["dest"] not in used_operands:
                     changed |= True
                 else:
                     new_block.append(instr)
-            # Copy over the old block to the new block
+            # Copy over the new block over to the old block
             block[:] = new_block
     # Re-assemble the program back together
-    func['instrs'] = flatten(blocks)
+    f['instrs'] = flatten(blocks)
     return program_modified
 
 
@@ -73,11 +73,13 @@ def remove_unused_defs_pass(f) -> bool:
                     if dest in variable_to_last_def_with_no_use_map:
                         dead_instrs.add(variable_to_last_def_with_no_use_map[dest])
                         changed |= True
+                        program_modified |= True
                     # Add the def to be kept track of its use
                     variable_to_last_def_with_no_use_map[dest] = i
             block[:] = [inst for (i, inst) in enumerate(block) if i not in dead_instrs]
+            # print(block)
     # Re-assemble the program back together
-    func['instrs'] = flatten(blocks)
+    f['instrs'] = flatten(blocks)
     return program_modified
 
 

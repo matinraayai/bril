@@ -92,6 +92,7 @@ class ValueNumberTable:
             is_comm = is_commutative(inst["op"])
             if inst["op"] == "const":
                 expr.append(inst["value"])
+                expr.append(inst["type"])
         args = []
         if "args" in inst:
             for arg in inst["args"]:
