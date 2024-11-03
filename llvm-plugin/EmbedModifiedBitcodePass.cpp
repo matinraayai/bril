@@ -11,9 +11,6 @@
 #include <llvm/Transforms/Utils/Cloning.h>
 #include <llvm/Transforms/Utils/ModuleUtils.h>
 
-#undef DEBUG_TYPE
-#define DEBUG_TYPE "embed-modified-bitcode-pass"
-
 namespace llvm {
 
 static constexpr const char *PatchPointAnnotation = "patch_point";
@@ -41,7 +38,7 @@ getAnnotatedValues(const Module &M,
       getConstantStringInfo(GV, Content);
       if (Content == PatchPointAnnotation) {
         PatchPoints.push_back(Func);
-        LLVM_DEBUG(dbgs() << "Found patch point " << Func->getName() << ".\n");
+        outs() << "Found patch point " << Func->getName() << ".\n";
       }
     }
   }
@@ -58,6 +55,10 @@ PreservedAnalyses EmbedModifiedBitcodePass::run(Module &M,
   // Clone the module in order to preprocess it + not interfere with normal
   // compilation process
   auto ClonedModule = CloneModule(M);
+
+  outs() << "Cloned module " << ClonedModule->getName()
+         << " before modification:\n";
+  ClonedModule->print(outs(), nullptr);
 
   // Extract all the patch points
   SmallVector<Function *, 4> PatchPoints;
@@ -81,8 +82,11 @@ PreservedAnalyses EmbedModifiedBitcodePass::run(Module &M,
     }
   }
 
-  // Give each Hook function a "hook" attribute
+  // Remove the body of each patch point function, and add a "patch_point"
+  // attribute to them
   for (auto PatchPoint : PatchPoints) {
+    PatchPoint->deleteBody();
+    PatchPoint->setComdat(nullptr);
     PatchPoint->setCallingConv(llvm::CallingConv::AnyReg);
     PatchPoint->addFnAttr(PatchPointAnnotation);
     PatchPoint->removeFnAttr(Attribute::OptimizeNone);
@@ -96,9 +100,8 @@ PreservedAnalyses EmbedModifiedBitcodePass::run(Module &M,
     GV.setDSOLocal(false);
   }
 
-  LLVM_DEBUG(dbgs() << "Embedded Module " << ClonedModule->getName()
-                    << " dump: ");
-  LLVM_DEBUG(ClonedModule->print(dbgs(), nullptr));
+  outs() << "Embedded Module " << ClonedModule->getName() << " dump: ";
+  ClonedModule->print(outs(), nullptr);
 
   SmallVector<char> Data;
   raw_svector_ostream OS(Data);
