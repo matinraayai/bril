@@ -34,6 +34,36 @@ def calculate_dominated_map(func):
                 changed = True
     return dominated_map
 
+def verify_dominated_map(func, dominated_map):
+    """
+    Given a bril function and a previously calculated dominated map, verify the dominated map is indeed correct by
+    running a BFS path finding algorithm on the CFG.
+    """
+    # Get the blocks, and ensure it has an entry block, and add terminators at the end of each block
+    blocks = block_map(form_blocks(func['instrs']))
+    add_entry(blocks)
+    add_terminators(blocks)
+    # Get the predecessors graph
+    predecessor_map, _ = edges(blocks)
+    entry_block = list(blocks.keys())[0]
+    all_possible_paths_to_entry_per_block = {block: []  for block in blocks}
+
+    for block in blocks:
+        to_be_visited_paths = [[block]]
+        while to_be_visited_paths:
+            current_path = to_be_visited_paths.pop(0)
+            current_last_block = current_path[-1]
+            if current_last_block == entry_block:
+                all_possible_paths_to_entry_per_block[block].append(current_path)
+            for predecessor in predecessor_map[current_last_block]:
+                if predecessor not in current_path:
+                    to_be_visited_paths.append(current_path + [predecessor])
+    for block, dominator_blocks in dominated_map.items():
+        for dominator_block in dominator_blocks:
+            for path in all_possible_paths_to_entry_per_block[block]:
+                if dominator_block not in path:
+                    print(f"Found a dominator block {dominator_block} that is not on the path to entry: {path}")
+
 
 def calculate_dominator_map(dominated_map):
     """
@@ -96,6 +126,9 @@ if __name__ == '__main__':
     module = json.load(sys.stdin)
     for f in module['functions']:
         dominated_map = calculate_dominated_map(f)
+        # verify if the dominated map was correctly calculated (only prints something if verification fails to not
+        # interfere with turnt
+        verify_dominated_map(f, dominated_map)
         # Calculate the mapping between each block and a set of blocks it dominates by
         # inverting the dominated_map
         dominator_map = calculate_dominator_map(dominated_map)
