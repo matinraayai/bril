@@ -12,24 +12,27 @@ def calculate_dom(func):
     add_terminators(blocks)
     # Get the predecessors graph
     predecessor_map, _ = edges(blocks)
-    # Initially, map all blocks to each other
-    dom_set = {block: {b for b in blocks} for block in blocks}
     # Remove the entry block from the iteration, as we know it dominates everything
     blocks_without_entry = {name: b for (name, b) in blocks.items() if name != list(blocks.keys())[0]}
+    # Initially, map all blocks to each other, except the entry block, which maps only to itself
+    dom_set = {block: {b for b in blocks} for block in blocks}
+    dom_set[list(blocks.keys())[0]] = {list(blocks.keys())[0]}
     changed = True
     while changed:
         changed = False
         for block in blocks_without_entry:
-            current_dom = set()
+            print("initial: ", dom_set[block])
+            for p in predecessor_map[block]:
+                print(p, dom_set[p])
             # dom[vertex] = {vertex} ∪ ⋂{dom[p] for p in vertex.preds}
-            current_dom.intersection_update(*[dom_set[p] for p in predecessor_map[block]])
+            current_dom = set.intersection(*[dom_set[p] for p in predecessor_map[block]])
             current_dom.add(block)
+            print(current_dom, block)
 
             # Replace the entry if it has changed
             if dom_set[block] != current_dom:
                 dom_set[block] = current_dom
                 changed = True
-
     return dom_set
 
 
