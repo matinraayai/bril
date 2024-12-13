@@ -74,17 +74,19 @@ def calculate_dominator_frontier(func, dominator_map):
     return dominator_frontier
 
 
-def calculate_dominator_tree(dominator_map):
+def calculate_dominator_tree(dominator_map, dominated_map):
     """
     Given a dominator map relation, creates the dominator tree by calculating the immediate dominance relation
     """
     strict_dominator_map = {block: {dominated_block for dominated_block in dominated_blocks if dominated_block != block}
                             for block, dominated_blocks in dominator_map.items()}
-    dominator_tree = {block: set() for block in dominator_map}
 
+    strict_dominated_map = {block: {dominator_block for dominator_block in dominator_blocks if dominator_block != block}
+                            for block, dominator_blocks in dominated_map.items()}
+    dominator_tree = {block: set() for block in dominator_map}
     for a, a_strict_dominated_blocks in strict_dominator_map.items():
         for b in a_strict_dominated_blocks:
-            if not a_strict_dominated_blocks.union(strict_dominator_map[b]):
+            if not a_strict_dominated_blocks.intersection(strict_dominated_map[b]):
                 dominator_tree[a].add(b)
 
     return dominator_tree
@@ -111,7 +113,7 @@ if __name__ == '__main__':
                 indent=2, sort_keys=True,
             ))
         elif sys.argv[1] == 'tree':
-            dominator_tree = calculate_dominator_tree(dominator_map)
+            dominator_tree = calculate_dominator_tree(dominator_map, dominated_map)
             print(json.dumps(
                 {k: sorted(list(v)) for k, v in dominator_tree.items()},
                 indent=2, sort_keys=True,
