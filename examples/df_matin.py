@@ -88,7 +88,7 @@ def liveness_analysis(module):
         # Test (only prints if there are issues)
         for block_name in blocks:
             for successor in successor_map[block_name]:
-                if live_ins[successor].intersection(live_outs[block_name]) == live_ins[successor]:
+                if live_ins[successor].intersection(live_outs[block_name]) != live_ins[successor]:
                     print(f"Live-ins of block {successor} is not fully included in the live-outs of block {block_name}")
 
 
