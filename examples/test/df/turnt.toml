@@ -9,3 +9,7 @@ output."live.out" = "-"
 [envs.cprop]
 command = "bril2json < {filename} | python3 ../../df.py cprop"
 output."cprop.out" = "-"
+
+[envs.live_matin]
+command = "bril2json < {filename} | python3 ../../df_matin.py"
+output."live.out" = "-"
